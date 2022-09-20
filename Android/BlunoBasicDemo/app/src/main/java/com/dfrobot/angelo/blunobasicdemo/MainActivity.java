@@ -3,6 +3,7 @@ package com.dfrobot.angelo.blunobasicdemo;
 import android.content.Context;
 import android.os.Bundle;
 import android.content.Intent;
+import android.os.Environment;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -12,19 +13,32 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.List;
+import java.util.Locale;
 
 public class MainActivity  extends BlunoLibrary {
 	private Button buttonScan;
 	private Button buttonSerialSend;
 	private EditText serialSendText;
 	private TextView serialReceivedText;
-	
+
+	static String foldername = "";
+	static String filename = "logfile.txt";
+	static SimpleDateFormat fileNameForm  = new SimpleDateFormat("yyMMdd", Locale.KOREA);
+	static SimpleDateFormat logForm	= new SimpleDateFormat("hh:mm:ss",Locale.KOREA);
+
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
-
+		foldername = this.getFilesDir().toString();
 		request(1000, new OnPermissionsResult() {
 			@Override
 			public void OnSuccess() {
@@ -125,9 +139,30 @@ public class MainActivity  extends BlunoLibrary {
 	@Override
 	public void onSerialReceived(String theString) {							//Once connection data received, this function will be called
 		// TODO Auto-generated method stub
-		serialReceivedText.append(theString);							//append the text into the EditText
+		serialReceivedText.append(logForm.format(Calendar.getInstance().getTime()) + " -> " + theString);	//append the text into the EditText
 		//The Serial data from the BLUNO may be sub-packaged, so using a buffer to hold the String is a good choice.
 		((ScrollView)serialReceivedText.getParent()).fullScroll(View.FOCUS_DOWN);
+		if(serialReceivedText.getText().length() >= 16 * 50){
+			serialReceivedText.setText("");
+		}
+		filename = "LOG" + fileNameForm.format(Calendar.getInstance().getTime()) + ".txt";
+		WriteTextFile(foldername, filename, logForm.format(Calendar.getInstance().getTime()) + "," + theString);	//append the log
 	}
 
+	public void WriteTextFile(String foldername, String filename, String contents){
+		try{
+			File dir = new File(foldername);
+			if(!dir.exists()) {
+				dir.mkdir();
+			}
+			FileOutputStream fos = new FileOutputStream(foldername+"/"+filename, true);
+			BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(fos));
+			writer.write(contents);
+			writer.flush();
+			writer.close();
+			fos.close();
+		}catch (IOException e){
+			e.printStackTrace();
+		}
+	}
 }
